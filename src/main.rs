@@ -1,5 +1,6 @@
 // --- IMPORTS ---
 use clap::Parser;
+use datafusion::prelude::{ParquetReadOptions, SessionContext};
 
 // --- CLI DEFINITION ---
 #[derive(Parser, Debug)]
@@ -19,7 +20,28 @@ struct Cli {
 async fn main() {
     let args = Cli::parse();
 
-    // print the arguments back to the user to prove it works
-    println!("Input file path: {}", args.input);
-    println!("SQL Query to execute: {}", args.query);
+   // We now `await` our `run` function because it is asynchronous.
+    if let Err(e) = run(args).await {
+        eprintln!("Application error: {}", e);
+    }
+}
+
+// CORE LOGIC 
+
+async fn run (args: Cli) -> Result<(), Box<dyn std::error::Error>> {
+    // Create a new Datafusion SessionContext.
+    let ctx = SessionContext::new();
+
+    // Register the Parquet file as table 
+    ctx.register_parquet("data", &args.input, ParquetReadOptions::default()).await?;
+
+    // Execute the SQL query
+    let df = ctx.sql(&args.query).await?;
+    
+    // Collect and print results 
+    df.show().await?;
+
+    
+    Ok(())
+
 }
