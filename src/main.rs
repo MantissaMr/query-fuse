@@ -20,7 +20,6 @@ struct Cli {
 async fn main() {
     let args = Cli::parse();
 
-   // We now `await` our `run` function because it is asynchronous.
     if let Err(e) = run(args).await {
         eprintln!("Application error: {}", e);
     }
