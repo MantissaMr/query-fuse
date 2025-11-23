@@ -79,25 +79,49 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
         match readline {
             Ok(line) => {
                 // Clean up the input
-                let sql = line.trim();
+                let input = line.trim();
                 
                 // Handle empty lines (user just hit enter)
-                if sql.is_empty() {
+                if input.is_empty() {
                     continue;
                 }
-
-                // Check for exit command
-                if sql.eq_ignore_ascii_case("exit") || sql.eq_ignore_ascii_case("quit") {
+        //EVAL: Check for special commands or run SQL
+                if input.starts_with('.') {
+                    match input {
+                        ".exit" | ".quit" => break,
+                        ".help" => {
+                            println!("Available commands:");
+                            println!("  .tables       List all registered tables");
+                            println!("  .exit, .quit  Exit the shell");
+                            println!("  .help         Show this message");
+                            println!("  <SQL>         Run any SQL query (e.g., SELECT * FROM data)");
+                        }
+                        ".tables" => {
+                            let catalog = ctx.catalog("datafusion").unwrap();
+                            let schema = catalog.schema("public").unwrap();
+                            let table_names = schema.table_names();
+                            
+                            println!("Registered Tables:");
+                            for name in table_names {
+                                println!("  - {}", name);
+                            }
+                        }
+                        _ => {
+                            println!("Unknown command: '{}'. Type .help for instructions.", input);
+                        }
+                    } continue;
+                }
+                if input.eq_ignore_ascii_case("exit") || input.eq_ignore_ascii_case("quit") {
                     break;
                 }
 
-                // Add to history (so you can press Up Arrow)
-                let _ = rl.add_history_entry(sql);
+                // 
+                let _ = rl.add_history_entry(input);
 
-                // EXECUTE: Run the query against the context
-                // We create a separate async task so a bad query doesn't crash the shell
-                let df_result = ctx.sql(sql).await;
+                // Run the query against the context
+                let df_result = ctx.sql(input).await; 
 
+        // PRINT: Show results or errors
                 match df_result {
                     Ok(df) => {
                         // PRINT: Show the results table
@@ -111,6 +135,7 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
                     }
                 }
             },
+        // LOOP CONTROL: Handle interruptions and EOF
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
                 break;
