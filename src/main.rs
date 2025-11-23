@@ -1,14 +1,15 @@
 // --- IMPORTS ---
 use clap::Parser;
+use std::error::Error;
+use std::fs::File;
+use std::sync::Arc;
 use datafusion::arrow::ipc::reader::FileReader;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::MemTable;
 use datafusion::prelude::*;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
-use std::error::Error;
-use std::fs::File;
-use std::sync::Arc; 
+use colored::*; 
 
 
 
@@ -35,14 +36,21 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
     // Initialize the Datafusion Context
     let ctx = SessionContext::new();
 
-    // Register the data source 
+    // Register the data source and table
     println!("Loading data from {}...", args.input);
     
     let file_extension = args.input.split('.').last().unwrap_or("");
 
+    let raw_name = std::path::Path::new(&args.input)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("data");
+    // Sanitize table name: replace non-alphanumeric characters with underscores
+    let table_name = raw_name.replace(|c: char| !c.is_alphanumeric(), "_");
+
     match file_extension {
         "parquet" => {
-            ctx.register_parquet("data", &args.input, ParquetReadOptions::default()).await?;
+            ctx.register_parquet("table_name", &args.input, ParquetReadOptions::default()).await?;
         }
         "arrow" | "feather" => {
             let file = File::open(&args.input)?;
@@ -54,7 +62,7 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
 
             // Use MemTable to register in-memory Arrow data
             let table = MemTable::try_new(schema, vec![batches])?;
-            ctx.register_table("data", Arc::new(table))?;
+            ctx.register_table("table_name", Arc::new(table))?;
         }
         _ => {
             return Err(format!(
@@ -63,10 +71,13 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
             ).into());
         }
     }
+    // Welcome Banner
+    println!("{}", "Data loaded successfully.".green());
+    println!("Table registered as '{}'.", table_name.cyan().bold());
+    println!("Type {} for available commands.", ".help".yellow());
+    println!("{}", "----------------------------------------".dimmed());
 
-    println!("Data loaded successfully.");
-    println!("Table registered as 'data'.");
-    println!("Type 'exit' or 'quit' to leave.");
+    let prompt = format!("{} ", "query-fuse >".cyan().bold());
 
     // Initialize the Interactive Shell 
     let mut rl = DefaultEditor::new()?;
@@ -74,7 +85,7 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
     // REPL Loop
     loop {
         // READ: Print prompt and wait for user input
-        let readline = rl.readline("query-fuse > ");
+        let readline = rl.readline(&prompt);
 
         match readline {
             Ok(line) => {
@@ -90,24 +101,28 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
                     match input {
                         ".exit" | ".quit" => break,
                         ".help" => {
-                            println!("Available commands:");
-                            println!("  .tables       List all registered tables");
-                            println!("  .exit, .quit  Exit the shell");
-                            println!("  .help         Show this message");
-                            println!("  <SQL>         Run any SQL query (e.g., SELECT * FROM data)");
+                            println!("{}", "Available commands:".bold());
+                            println!("  {}       List all registered tables", ".tables".yellow());
+                            println!("  {}  Exit the shell", ".exit, .quit".yellow());
+                            println!("  {}         Show this message", ".help".yellow());
+                            println!("  {}         Run any SQL query", "<SQL>".green());
                         }
                         ".tables" => {
                             let catalog = ctx.catalog("datafusion").unwrap();
                             let schema = catalog.schema("public").unwrap();
                             let table_names = schema.table_names();
                             
-                            println!("Registered Tables:");
+                            println!("{}", "Registered Tables:".bold());
                             for name in table_names {
-                                println!("  - {}", name);
+                                println!("  - {}", name.cyan());
                             }
                         }
                         _ => {
-                            println!("Unknown command: '{}'. Type .help for instructions.", input);
+                            println!("{} '{}'. Type {} for instructions.", 
+                                "Unknown command:".red(), 
+                                input,
+                                ".help".yellow()
+                            );
                         }
                     } continue;
                 }
@@ -126,26 +141,26 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
                     Ok(df) => {
                         // PRINT: Show the results table
                         if let Err(e) = df.show().await {
-                            println!("Error displaying results: {}", e);
+                            println!("{} {}", "Error displaying results:".red(), e);
                         }
                     }
                     Err(e) => {
                         // If the SQL is bad, print the error but KEEP LOOPING
-                        println!("SQL Error: {}", e);
+                        println!("{} {}", "SQL Error:".red().bold(), e);
                     }
                 }
             },
         // LOOP CONTROL: Handle interruptions and EOF
             Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
+                println!("{}", "CTRL-C".red());
                 break;
             },
             Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
+                println!("{}", "CTRL-D".red());
                 break;
             },
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("{} {:?}", "Error:".red().bold(), err);
                 break;
             }
         }
