@@ -8,3 +8,4 @@ datafusion = "43.0.0"
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 rustyline = "13.0"
+colored = "2" 
