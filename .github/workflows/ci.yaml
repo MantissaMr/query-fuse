@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python (for data generation)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Python dependencies
+      run: pip install pandas pyarrow
+
+    - name: Generate Sample Data
+      run: python create_sample.py
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Run Tests
+      run: cargo test --verbose
