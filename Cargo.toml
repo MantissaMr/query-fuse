@@ -9,3 +9,7 @@ clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 rustyline = "13.0"
 colored = "2" 
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
