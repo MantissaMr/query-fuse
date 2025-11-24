@@ -19,21 +19,25 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_name: query-fuse
+            asset_name: query-fuse-linux-amd64.tar.gz
           
           # Mac - Intel
           - os: macos-13
             target: x86_64-apple-darwin
             binary_name: query-fuse
+            asset_name: query-fuse-macos-intel.tar.gz
 
           # Mac - Apple Siliccon
           - os: macos-14
             target: aarch64-apple-darwin
             binary_name: query-fuse
+            asset_name: query-fuse-macos-arm64.tar.gz
 
           # Windows
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: query-fuse.exe
+            asset_name: query-fuse-windows.zip
 
     steps:
       - name: Checkout code
@@ -47,15 +51,19 @@ jobs:
       - name: Build Binary
         run: cargo build --release --target ${{ matrix.target }} --verbose
 
-      - name: Rename Artifact (Unix)
+      - name: Compress (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          mv target/${{ matrix.target }}/release/${{ matrix.binary_name }} ${{ matrix.binary_name }}-${{ matrix.target }}
+          cd target/${{ matrix.target }}/release
+          tar -czf ../../../${{ matrix.asset_name }} ${{ matrix.binary_name }}
+          cd ../../..
 
-      - name: Rename Artifact (Windows)
+      - name: Compress (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          move target/${{ matrix.target }}/release/${{ matrix.binary_name }} ${{ matrix.binary_name }}-${{ matrix.target }}.exe
+          cd target/${{ matrix.target }}/release
+          7z a ../../../${{ matrix.asset_name }} ${{ matrix.binary_name }}
+          cd ../../..
 
       - name: Upload Binary to Release
         uses: softprops/action-gh-release@v1
