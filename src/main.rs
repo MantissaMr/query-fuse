@@ -50,7 +50,7 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
 
     match file_extension {
         "parquet" => {
-            ctx.register_parquet("table_name", &args.input, ParquetReadOptions::default()).await?;
+            ctx.register_parquet(&table_name, &args.input, ParquetReadOptions::default()).await?;
         }
         "arrow" | "feather" => {
             let file = File::open(&args.input)?;
@@ -62,7 +62,7 @@ async fn run(args: Cli) -> Result<(), Box<dyn Error>> {
 
             // Use MemTable to register in-memory Arrow data
             let table = MemTable::try_new(schema, vec![batches])?;
-            ctx.register_table("table_name", Arc::new(table))?;
+            ctx.register_table(&table_name, Arc::new(table))?;
         }
         _ => {
             return Err(format!(
