@@ -24,7 +24,7 @@ jobs:
             asset_name: query-fuse-linux-amd64.tar.gz
           
           # Mac - Intel
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
             binary_name: query-fuse
             asset_name: query-fuse-macos-intel.tar.gz
