@@ -1,6 +1,7 @@
 # Query Fuse
 
-An interactive SQL query engine for local columnar files (Parquet, Arrow, Feather)
+An interactive SQL engine that runs directly on local columnar files like Parquet, Arrow, and Feather. It delivers instant startup and a snappy REPL for rapid data exploration without any ingestion.
+
 
 ## Installation
 
