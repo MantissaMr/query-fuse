@@ -9,10 +9,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # --- JOB 1: Build and Upload Binaries ---
   build-and-upload:
     name: Build on ${{ matrix.os }} (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false 
       matrix:
         include:
           # Linux
@@ -70,3 +72,31 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: query-fuse-*
+  
+  # --- JOB 2: Build and Push Docker Image ---
+  push-docker-image:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/query-fuse
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
