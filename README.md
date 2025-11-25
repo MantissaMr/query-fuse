@@ -7,7 +7,10 @@ An interactive SQL query engine for local columnar files (Parquet, Arrow, Feathe
 ### Docker
 
 ```bash
-docker run -it -v $PWD:/data alamiinsi/query-fuse -i /data/your-file.parquet
+docker run -it \
+    -v $PWD:/data \
+    alamiinsi/query-fuse \
+    -i /data/your-file.parquet
 ```
 
 ### Pre-compiled Binaries
