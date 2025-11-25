@@ -2,6 +2,11 @@
 name = "query-fuse"
 version = "0.1.0"
 edition = "2021"
+description = "An interactive SQL query engine for local columnar files (Parquet, Arrow, Feather)"
+license = "MIT"
+repository = "https://github.com/MantissaMr/query-fuse"
+keywords = ["sql", "parquet", "arrow", "datafusion", "cli"]
+categories = ["command-line-utilities", "database", "development-tools"]
 
 [dependencies]
 datafusion = "43.0.0"
